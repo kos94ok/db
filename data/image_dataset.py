@@ -9,6 +9,7 @@ import glob
 from concern.config import Configurable, State
 import math
 
+
 class ImageDataset(data.Dataset, Configurable):
     r'''Dataset reading from images.
     Args:
@@ -37,15 +38,16 @@ class ImageDataset(data.Dataset, Configurable):
             with open(self.data_list[i], 'r') as fid:
                 image_list = fid.readlines()
             if self.is_training:
-                image_path=[self.data_dir[i]+'/train_images/'+timg.strip() for timg in image_list]
-                gt_path=[self.data_dir[i]+'/train_gts/'+timg.strip()+'.txt' for timg in image_list]
+                image_path = [self.data_dir[i] + '/train_images/' + timg.strip() for timg in image_list]
+                gt_path = [self.data_dir[i] + '/train_gts/' + timg.strip() + '.txt' for timg in image_list]
             else:
-                image_path=[self.data_dir[i]+'/test_images/'+timg.strip() for timg in image_list]
+                image_path = [self.data_dir[i] + '/test_images/' + timg.strip() for timg in image_list]
                 print(self.data_dir[i])
                 if 'TD500' in self.data_list[i] or 'total_text' in self.data_list[i]:
-                    gt_path=[self.data_dir[i]+'/test_gts/'+timg.strip()+'.txt' for timg in image_list]
+                    gt_path = [self.data_dir[i] + '/test_gts/' + timg.strip() + '.txt' for timg in image_list]
                 else:
-                    gt_path=[self.data_dir[i]+'/test_gts/'+'gt_'+timg.strip().split('.')[0]+'.txt' for timg in image_list]
+                    gt_path = [self.data_dir[i] + '/test_gts/' + 'gt_' + timg.strip().split('.')[0] + '.txt' for timg in
+                        image_list]
             self.image_paths += image_path
             self.gt_paths += gt_path
         self.num_samples = len(self.image_paths)
@@ -57,21 +59,25 @@ class ImageDataset(data.Dataset, Configurable):
         res = []
         for gt in self.gt_paths:
             lines = []
-            reader = open(gt, 'r').readlines()
+            reader = open(gt.replace('.jpg', ''), 'r').readlines()
+            reader = list(map(lambda x: x.replace(' \n', ''), reader))
+            del reader[-1]
             for line in reader:
                 item = {}
                 parts = line.strip().split(',')
                 label = parts[-1]
                 if 'TD' in self.data_dir[0] and label == '1':
                     label = '###'
-                line = [i.strip('\ufeff').strip('\xef\xbb\xbf') for i in parts]
+                line = parts
                 if 'icdar' in self.data_dir[0]:
                     poly = np.array(list(map(float, line[:8]))).reshape((-1, 2)).tolist()
                 else:
+                    line = line[0].strip().split()
                     num_points = math.floor((len(line) - 1) / 2) * 2
                     poly = np.array(list(map(float, line[:num_points]))).reshape((-1, 2)).tolist()
+
                 item['poly'] = poly
-                item['text'] = label
+                item['text'] = 'text'
                 lines.append(item)
             res.append(lines)
         return res
